@@ -21,8 +21,27 @@
 #include "SPI.h"
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
+
 #include "RTC.h"
+
 #include <MFRC522.h>
+
+#include "Servo.h"
+
+#include <WiFi.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+
+const char *ssid = "NOWEQGUZ";
+const char *password = "22m5v1dYbRCy";
+
+// NTP settings
+const long gmtOffset_sec = 0;         // Your timezone offset in seconds
+const int daylightOffset_sec = 3600;  // Daylight saving time offset in seconds
+
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", gmtOffset_sec, daylightOffset_sec);
+
 /*
 #define TFT_CLK 13
 #define TFT_MISO -1
@@ -30,27 +49,39 @@
 #define TFT_DC 7
 #define TFT_CS 10
 #define TFT_RST 8
+
+#define SS_PIN 10 
+#define RST_PIN 5
 */
+//Screen Pins
 #define TFT_CLK 8
 #define TFT_MISO -1
 #define TFT_MOSI 9
 #define TFT_DC 4
 #define TFT_CS 7
 #define TFT_RST 3
+//RFID Pins
 #define SS_PIN 10
-#define RST_PIN 5
+#define RST_PIN 2
 
 int buzzerPin = A5;
+int button1 = 5;
+int button2 = 6;
+
+Servo myservo;
 
 byte readCard[4];
-String MasterTag = "D938C899";
+String MasterTag = "BDEA5359";
 String tagID = "";
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
 
 void setup() {
+  WiFi.begin(ssid, password);
+
   pinMode(buzzerPin, OUTPUT);
+  myservo.attach(A4);
   Serial.begin(9600);
 
   SPI.begin();
@@ -66,37 +97,30 @@ void setup() {
   tft.begin(0x9341);
   tft.setRotation(3);
   tft.fillScreen(ILI9341_WHITE);
-
+  timeClient.begin();
   scanToStart();
-  /*
-  while (Serial.available() == 0) {
-  }
-  int menuSelect = Serial.parseInt();
-  menuChoice(menuSelect);
-*/
 }
 void loop(void) {
   while (getID()) {
-    //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
     if (tagID == MasterTag) {
       tft.begin();
       mainMenuButton();
+      myservo.write(180);
       analogWrite(buzzerPin, 127);
       delay(500);
-      analogWrite(buzzerPin,0);
-    }
-    else{
+      analogWrite(buzzerPin, 0);
+    } else {
       scanDenied();
       return;
       delay(1000);
       scanToStart();
     }
     while (true) {
-      time();
+      wifiTime();
     }
   }
 }
-
+/*
 void time() {
   RTCTime currentTime;
   RTC.getTime(currentTime);
@@ -118,7 +142,19 @@ void time() {
   tft.print(":");
   tft.print(currentTime.getSeconds());
 }
-
+*/
+//WIFI time
+void wifiTime() {
+  tft.setCursor(150, 10);
+  tft.setTextSize(2);
+  tft.setTextColor(ILI9341_WHITE);
+  timeClient.update();
+  tft.print(timeClient.getFormattedTime());
+  delay(1000);
+  tft.setCursor(150, 10);
+  tft.fillRect(150, 10, 95, 15, ILI9341_DARKCYAN);
+}
+//main menu screen
 void mainMenuButton() {
   tft.setRotation(3);
   tft.fillScreen(ILI9341_WHITE);
@@ -139,14 +175,14 @@ void mainMenuButton() {
   tft.setTextSize(2);
   tft.print("Open");
 }
-
+//scan to start screen
 void scanToStart() {
   tft.setCursor(80, 100);
   tft.setTextColor(ILI9341_BLACK);
   tft.setTextSize(3);
   tft.print("Scan card");
 }
-
+//scan denied screen
 void scanDenied() {
   tft.setCursor(80, 100);
   tft.setTextColor(ILI9341_WHITE);
@@ -162,20 +198,17 @@ int menuChoice(int menuSelect) {
     mainMenuButton();
   }
 }
-
+//RFID scan
 boolean getID() {
-  //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
   // Getting ready for Reading PICCs
   //If a new PICC placed to RFID reader continue
   if (!mfrc522.PICC_IsNewCardPresent()) {
     return false;
   }
-  //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
   //Since a PICC placed get Serial and continue
   if (!mfrc522.PICC_ReadCardSerial()) {
     return false;
   }
-  //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
   tagID = "";
   // The MIFARE PICCs that we use have 4 byte UID
   for (uint8_t i = 0; i < 4; i++) {
@@ -183,9 +216,7 @@ boolean getID() {
     // Adds the 4 bytes in a single String variable
     tagID.concat(String(mfrc522.uid.uidByte[i], HEX));
   }
-  //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
   tagID.toUpperCase();
   mfrc522.PICC_HaltA();  // Stop reading
   return true;
-  //MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 }
