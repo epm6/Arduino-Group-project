@@ -1,3 +1,4 @@
+//screen colours
 #define ILI9341_BLACK 0x0000        ///<   0,   0,   0
 #define ILI9341_NAVY 0x000F         ///<   0,   0, 123
 #define ILI9341_DARKGREEN 0x03E0    ///<   0, 125,   0
@@ -18,42 +19,26 @@
 #define ILI9341_GREENYELLOW 0xAFE5  ///< 173, 255,  41
 #define ILI9341_PINK 0xFC18         ///< 255, 130, 198
 #define ILI9341_ARDUINO 0x306D6F    ///< 48, 107, 111
-
+//screen libraries
 #include "SPI.h"
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
-
-#include "RTC.h"
-
+//RFID library
 #include <MFRC522.h>
-
+//Servo library
 #include "Servo.h"
-
+//Wifi
 #include <WiFi.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
-
+//wifi password
 const char *ssid = "EDA-IOT";
 const char *password = "3aB1J27M";
-
 // NTP settings
 const long gmtOffset_sec = 0;         // Your timezone offset in seconds
 const int daylightOffset_sec = 3600;  // Daylight saving time offset in seconds
-
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", gmtOffset_sec, daylightOffset_sec);
-
-/*
-#define TFT_CLK 13
-#define TFT_MISO -1
-#define TFT_MOSI 11
-#define TFT_DC 7
-#define TFT_CS 10
-#define TFT_RST 8
-
-#define SS_PIN 10 
-#define RST_PIN 5
-*/
 //Screen Pins
 #define TFT_CLK 8
 #define TFT_MISO -1
@@ -64,46 +49,45 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", gmtOffset_sec, daylightOffset_sec);
 //RFID Pins
 #define SS_PIN 10
 #define RST_PIN 2
-
+//Pin attach
 int buzzerPin = A3;
 int button1 = A1;
 int button2 = A2;
 int buttonState = 0;
 int menuSelect = 0;
-
+//Servo attach
 Servo myservo1;
 Servo myservo2;
 Servo myservo3;
 Servo myservo4;
-
+//Master RFID key
 byte readCard[4];
 String MasterTag = "BDEA5359";
 String tagID = "";
 MFRC522 mfrc522(SS_PIN, RST_PIN);
-
+//Screen setup
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
 
 void setup() {
+  //wifi setup
   WiFi.begin(ssid, password);
-
+  //button and buzzer pins
   pinMode(button1, INPUT_PULLUP);
   pinMode(button2, INPUT_PULLUP);
   pinMode(buzzerPin, OUTPUT);
+  //servo pins
   myservo1.attach(A4);
   myservo2.attach(A5);
   myservo3.attach(D0);
   myservo4.attach(D1);
+  //serial start
   Serial.begin(9600);
-
+  //screen start
   SPI.begin();
+  //RFID start
   mfrc522.PCD_Init();
   delay(4);
-
-
-  RTC.begin();
-  RTCTime startTime(22, Month::NOVEMBER, 2023, 14, 58, 00, DayOfWeek::WEDNESDAY, SaveLight::SAVING_TIME_ACTIVE);
-  RTC.setTime(startTime);
-
+  //screen setup
   tft.begin();
   tft.begin(0x9341);
   tft.setRotation(3);
@@ -120,7 +104,7 @@ void loop(void) {
       noTone(buzzerPin);
       tft.begin();
       mainMenuButton();
-      } 
+      }
     else {
       scanDenied();
       return;
@@ -133,33 +117,10 @@ void loop(void) {
       Serial.println(buttonState);
       if (buttonState == LOW){
         dispense();
-      } 
+      }
     }
   }
 }
-/*
-void time() {
-  RTCTime currentTime;
-  RTC.getTime(currentTime);
-
-  tft.setCursor(150, 10);
-  tft.setTextSize(2);
-  tft.setTextColor(ILI9341_WHITE);
-  tft.print(currentTime.getHour());
-  tft.print(":");
-  tft.print(currentTime.getMinutes());
-  tft.print(":");
-  tft.print(currentTime.getSeconds());
-  delay(1000);
-  tft.setCursor(150, 10);
-  tft.setTextColor(ILI9341_DARKCYAN);
-  tft.print(currentTime.getHour());
-  tft.print(":");
-  tft.print(currentTime.getMinutes());
-  tft.print(":");
-  tft.print(currentTime.getSeconds());
-}
-*/
 //WIFI time
 void wifiTime() {
   tft.setCursor(150, 10);
@@ -174,11 +135,8 @@ void wifiTime() {
 //main menu screen
 void mainMenuButton() {
   myservo1.write(180);
-  delay(500);
   myservo2.write(180);
-  delay(500);
   myservo3.write(180);
-  delay(500);
   myservo4.write(180);
   tft.setRotation(3);
   tft.fillScreen(ILI9341_DARKCYAN);
@@ -217,14 +175,14 @@ void scanDenied() {
 }
 
 int dispense() {
+  tft.fillScreen(ILI9341_DARKCYAN);
   tft.setCursor(80, 100);
-  tft.setTextColor(ILI9341_DARKCYAN);
+  tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(3);
   tft.print("Dispensing...");
   myservo1.write(90);
   mainMenuButton();
 }
-
 
 //RFID scan
 boolean getID() {
