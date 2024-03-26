@@ -132,7 +132,7 @@ void loop(void) {
       buttonState = digitalRead(button1);
       Serial.println(buttonState);
       if (buttonState == LOW){
-        menuChoice1();
+        dispense();
       } 
     }
   }
@@ -193,7 +193,7 @@ void mainMenuButton() {
   tft.setCursor(55, 120);
   tft.setTextColor(ILI9341_DARKCYAN);
   tft.setTextSize(2);
-  tft.print("Scan");
+  tft.print("Pill");
   tft.setCursor(218, 120);
   tft.setTextColor(ILI9341_DARKCYAN);
   tft.setTextSize(2);
@@ -216,18 +216,16 @@ void scanDenied() {
   tft.print("Access Denied");
 }
 
-int menuChoice1() {
-  tft.fillScreen(ILI9341_WHITE);
+int dispense() {
+  tft.setCursor(80, 100);
+  tft.setTextColor(ILI9341_DARKCYAN);
+  tft.setTextSize(3);
+  tft.print("Dispensing...");
   myservo1.write(90);
-  delay(500);
-  myservo2.write(270);
-  delay(500);
-  myservo3.write(45);
-  delay(500);
-  myservo4.write(100);
-  delay(1000);
   mainMenuButton();
 }
+
+
 //RFID scan
 boolean getID() {
   // Getting ready for Reading PICCs
