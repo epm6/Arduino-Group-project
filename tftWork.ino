@@ -36,7 +36,7 @@ const char *ssid = "NOWEQGUZ";
 const char *password = "22m5v1dYbRCy";
 // NTP settings
 const long gmtOffset_sec = 0;         // Your timezone offset in seconds
-const int daylightOffset_sec = 3600;  // Daylight saving time offset in seconds
+const int daylightOffset_sec = 0;  // Daylight saving time offset in seconds
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", gmtOffset_sec, daylightOffset_sec);
 //Screen Pins
@@ -51,6 +51,7 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", gmtOffset_sec, daylightOffset_sec);
 #define RST_PIN 2
 //Pin attach
 int lidCounter = 0;
+int forceSensor = A0;
 int buzzerPin = A3;
 int button1 = A1;
 int button2 = A2;
@@ -73,7 +74,7 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
 
 int day[7];
-int pillHour = 22;
+int pillHour = 23;
 int pillNumber = 0;
 int currentHour;
 
@@ -83,6 +84,7 @@ void setup() {
   //button and buzzer pins
   pinMode(button1, INPUT_PULLUP);
   pinMode(button2, INPUT_PULLUP);
+  pinMode(forceSensor, INPUT_PULLUP);
   pinMode(buzzerPin, OUTPUT);
   myservo4.attach(D0);
   myservo4.write(18);
@@ -138,7 +140,8 @@ void loop(void) {
             closeLid();
           }
         }
-      } else {
+      } 
+      else if (flag == 0) {
         wifiTime();
         buttonState2 = digitalRead(button2);
         buttonState1 = digitalRead(button1);
@@ -147,6 +150,18 @@ void loop(void) {
         }
           if (buttonState1 == LOW){
           scanToStart();
+          break;
+          }
+      }
+      else {
+        wifiTime();
+        buttonState2 = digitalRead(button2);
+        buttonState1 = digitalRead(button1);
+        if (buttonState2 == LOW) {
+          checkTime();
+        }
+          if (buttonState1 == LOW){
+          mainMenuButton();
           break;
           }
       }
@@ -202,7 +217,19 @@ void adminMenu() {
 }
 
 void checkDropped(){
-  
+  flag = 3;
+  tft.setRotation(3);
+  tft.fillScreen(ILI9341_DARKCYAN);
+  tft.fillRoundRect(30, 80, 100, 100, 10, ILI9341_WHITE);
+  tft.fillRoundRect(190, 80, 100, 100, 10, ILI9341_WHITE);
+  tft.setCursor(55, 120);
+  tft.setTextColor(ILI9341_DARKCYAN);
+  tft.setTextSize(2);
+  tft.print("No");
+  tft.setCursor(218, 120);
+  tft.setTextColor(ILI9341_DARKCYAN);
+  tft.setTextSize(2);
+  tft.print("Yes");
 }
 
 
@@ -245,12 +272,13 @@ void checkTime() {
   if (currentHour <= pillHour) {
     dispensePill1();
     Serial.print(currentHour);
-    mainMenuButton();
+    checkDropped();
   } else {
     denied();
     Serial.print(currentHour);
   }
   timeClient.update();
+
 }
 
 int denied() {
