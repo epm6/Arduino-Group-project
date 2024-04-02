@@ -32,8 +32,8 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 //wifi password
-const char *ssid = "EDA-IOT";
-const char *password = "3aB1J27M";
+const char *ssid = "NOWEQGUZ";
+const char *password = "22m5v1dYbRCy";
 // NTP settings
 const long gmtOffset_sec = 0;         // Your timezone offset in seconds
 const int daylightOffset_sec = 3600;  // Daylight saving time offset in seconds
@@ -67,6 +67,11 @@ String tagID = "";
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 //Screen setup
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
+
+int day[7];
+int pillHour = 21;
+int pillNumber = 0
+int currentHour;
 
 void setup() {
   //wifi setup
@@ -114,9 +119,8 @@ void loop(void) {
     while (true) {
       wifiTime();
       buttonState = digitalRead(button1);
-      Serial.println(buttonState);
       if (buttonState == LOW){
-        dispense();
+        checkTime();
       }
     }
   }
@@ -134,10 +138,10 @@ void wifiTime() {
 }
 //main menu screen
 void mainMenuButton() {
-  myservo1.write(180);
-  myservo2.write(180);
-  myservo3.write(180);
-  myservo4.write(180);
+  myservo1.write(0);
+  myservo2.write(0);
+  myservo3.write(0);
+  myservo4.write(0);
   tft.setRotation(3);
   tft.fillScreen(ILI9341_DARKCYAN);
   tft.setCursor(90, 10);
@@ -159,7 +163,7 @@ void mainMenuButton() {
 }
 //scan to start screen
 void scanToStart() {
-  tft.setCursor(80, 100);
+  tft.setCursor(80, 80);
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(3);
   tft.print("Scan card");
@@ -174,13 +178,42 @@ void scanDenied() {
   tft.print("Access Denied");
 }
 
+void checkTime(){
+  timeClient.update();
+  currentHour = timeClient.getHours();
+  if(currentHour <= pillHour)
+  {
+    dispense();
+    Serial.print(currentHour);
+  }
+  else
+  {
+    denied();
+    Serial.print(currentHour);
+  }
+  timeClient.update();
+}
+
+int denied() {
+  tft.fillScreen(ILI9341_DARKCYAN);
+  tft.setCursor(80, 100);
+  delay(1000);
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(3);
+  tft.print("Denied");
+  myservo1.write(90);
+  mainMenuButton();
+}
+
 int dispense() {
   tft.fillScreen(ILI9341_DARKCYAN);
   tft.setCursor(80, 100);
+  delay(1000);
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(3);
   tft.print("Dispensing...");
   myservo1.write(90);
+  delay(1000);
   mainMenuButton();
 }
 
