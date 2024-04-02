@@ -183,7 +183,9 @@ void checkTime(){
   currentHour = timeClient.getHours();
   if(currentHour <= pillHour)
   {
-    dispense();
+    dispensePill1();
+    dispensePill2();
+    dispensePill3();
     Serial.print(currentHour);
   }
   else
@@ -205,7 +207,7 @@ int denied() {
   mainMenuButton();
 }
 
-int dispense() {
+int dispensePill1() {
   tft.fillScreen(ILI9341_DARKCYAN);
   tft.setCursor(80, 100);
   delay(1000);
@@ -213,6 +215,30 @@ int dispense() {
   tft.setTextSize(3);
   tft.print("Dispensing...");
   myservo1.write(90);
+  delay(1000);
+  mainMenuButton();
+}
+
+int dispensePill2() {
+  tft.fillScreen(ILI9341_DARKCYAN);
+  tft.setCursor(80, 100);
+  delay(1000);
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(3);
+  tft.print("Dispensing...");
+  myservo2.write(90);
+  delay(1000);
+  mainMenuButton();
+}
+
+int dispensePill3() {
+  tft.fillScreen(ILI9341_DARKCYAN);
+  tft.setCursor(80, 100);
+  delay(1000);
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(3);
+  tft.print("Dispensing...");
+  myservo3.write(90);
   delay(1000);
   mainMenuButton();
 }
