@@ -32,8 +32,8 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 //wifi password
-const char *ssid = "NOWEQGUZ";
-const char *password = "22m5v1dYbRCy";
+const char *ssid = "EDA-IOT";
+const char *password = "3aB1J27M";
 // NTP settings
 const long gmtOffset_sec = 0;         // Your timezone offset in seconds
 const int daylightOffset_sec = 3600;  // Daylight saving time offset in seconds
@@ -50,10 +50,12 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", gmtOffset_sec, daylightOffset_sec);
 #define SS_PIN 10
 #define RST_PIN 2
 //Pin attach
+int lidCounter = 0;
 int buzzerPin = A3;
 int button1 = A1;
 int button2 = A2;
-int buttonState = 0;
+int buttonState1 = 0;
+int buttonState2 = 0;
 int menuSelect = 0;
 //Servo attach
 Servo myservo1;
@@ -70,7 +72,7 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_R
 
 int day[7];
 int pillHour = 21;
-int pillNumber = 0
+int pillNumber = 0;
 int currentHour;
 
 void setup() {
@@ -80,11 +82,8 @@ void setup() {
   pinMode(button1, INPUT_PULLUP);
   pinMode(button2, INPUT_PULLUP);
   pinMode(buzzerPin, OUTPUT);
-  //servo pins
-  myservo1.attach(A4);
-  myservo2.attach(A5);
-  myservo3.attach(D0);
-  myservo4.attach(D1);
+  myservo4.attach(D0);
+  myservo4.write(18);
   //serial start
   Serial.begin(9600);
   //screen start
@@ -101,7 +100,6 @@ void setup() {
   scanToStart();
 }
 void loop(void) {
-
   while (getID()) {
     if (tagID == MasterTag) {
       tone(buzzerPin, 1000);
@@ -118,9 +116,20 @@ void loop(void) {
     }
     while (true) {
       wifiTime();
-      buttonState = digitalRead(button1);
-      if (buttonState == LOW){
+      buttonState2 = digitalRead(button2);
+      buttonState1 = digitalRead(button1);
+
+      if (buttonState2 == LOW){
         checkTime();
+      }
+      if (buttonState1 == LOW){
+        Serial.println(lidCounter);
+        if (lidCounter == 0){
+          openLid();
+        }
+        else{
+          closeLid();
+        }
       }
     }
   }
@@ -136,12 +145,22 @@ void wifiTime() {
   tft.setCursor(150, 10);
   tft.fillRect(150, 10, 95, 15, ILI9341_WHITE);
 }
+
+int openLid(){
+  myservo4.write(240);
+  lidCounter = 1;
+  delay(1000);
+  mainMenuButton();
+}
+
+int closeLid(){
+  myservo4.write(15);
+  lidCounter = 0;
+  delay(1000);
+  mainMenuButton();
+}
 //main menu screen
 void mainMenuButton() {
-  myservo1.write(0);
-  myservo2.write(0);
-  myservo3.write(0);
-  myservo4.write(0);
   tft.setRotation(3);
   tft.fillScreen(ILI9341_DARKCYAN);
   tft.setCursor(90, 10);
@@ -184,9 +203,8 @@ void checkTime(){
   if(currentHour <= pillHour)
   {
     dispensePill1();
-    dispensePill2();
-    dispensePill3();
     Serial.print(currentHour);
+    mainMenuButton();
   }
   else
   {
@@ -204,19 +222,20 @@ int denied() {
   tft.setTextSize(3);
   tft.print("Denied");
   myservo1.write(90);
-  mainMenuButton();
 }
 
 int dispensePill1() {
+
   tft.fillScreen(ILI9341_DARKCYAN);
   tft.setCursor(80, 100);
   delay(1000);
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(3);
   tft.print("Dispensing...");
-  myservo1.write(90);
-  delay(1000);
-  mainMenuButton();
+  myservo1.attach(A4);
+  myservo1.write(0);
+  delay(500);
+  myservo1.write(180);
 }
 
 int dispensePill2() {
@@ -226,9 +245,10 @@ int dispensePill2() {
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(3);
   tft.print("Dispensing...");
-  myservo2.write(90);
-  delay(1000);
-  mainMenuButton();
+  myservo2.attach(A5);
+  myservo2.write(0);
+  delay(500);
+  myservo2.write(180);
 }
 
 int dispensePill3() {
@@ -238,9 +258,10 @@ int dispensePill3() {
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(3);
   tft.print("Dispensing...");
-  myservo3.write(90);
-  delay(1000);
-  mainMenuButton();
+  myservo3.attach(D1);
+  myservo3.write(0);
+  delay(500);
+  myservo3.write(180);
 }
 
 //RFID scan
