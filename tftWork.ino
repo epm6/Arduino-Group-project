@@ -32,8 +32,8 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 //wifi password
-const char *ssid = "EDA-IOT";
-const char *password = "3aB1J27M";
+const char *ssid = "NOWEQGUZ";
+const char *password = "22m5v1dYbRCy";
 // NTP settings
 const long gmtOffset_sec = 0;         // Your timezone offset in seconds
 const int daylightOffset_sec = 3600;  // Daylight saving time offset in seconds
@@ -57,6 +57,7 @@ int button2 = A2;
 int buttonState1 = 0;
 int buttonState2 = 0;
 int menuSelect = 0;
+int flag = 0;
 //Servo attach
 Servo myservo1;
 Servo myservo2;
@@ -64,6 +65,7 @@ Servo myservo3;
 Servo myservo4;
 //Master RFID key
 byte readCard[4];
+String UserTag = "D938C899";
 String MasterTag = "BDEA5359";
 String tagID = "";
 MFRC522 mfrc522(SS_PIN, RST_PIN);
@@ -71,7 +73,7 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
 
 int day[7];
-int pillHour = 21;
+int pillHour = 22;
 int pillNumber = 0;
 int currentHour;
 
@@ -95,45 +97,63 @@ void setup() {
   tft.begin();
   tft.begin(0x9341);
   tft.setRotation(3);
-  tft.fillScreen(ILI9341_DARKCYAN);
   timeClient.begin();
   scanToStart();
 }
 void loop(void) {
   while (getID()) {
     if (tagID == MasterTag) {
+      flag = 1;
       tone(buzzerPin, 1000);
       delay(500);
       noTone(buzzerPin);
       tft.begin();
+      adminMenu();
+    } else if (tagID == UserTag) {
+      flag = 0;
+      tone(buzzerPin, 2000);
+      delay(500);
+      noTone(buzzerPin);
+      tft.begin();
       mainMenuButton();
-      }
-    else {
+    } else {
       scanDenied();
       return;
       delay(1000);
       scanToStart();
     }
     while (true) {
-      wifiTime();
-      buttonState2 = digitalRead(button2);
-      buttonState1 = digitalRead(button1);
-
-      if (buttonState2 == LOW){
-        checkTime();
-      }
-      if (buttonState1 == LOW){
-        Serial.println(lidCounter);
-        if (lidCounter == 0){
-          openLid();
+      if (flag == 1) {
+        wifiTime();
+        buttonState2 = digitalRead(button2);
+        buttonState1 = digitalRead(button1);
+        if (buttonState2 == LOW) {
+          //*START SERVER FUNCTION GOES HERE*
         }
-        else{
-          closeLid();
+        if (buttonState1 == LOW) {
+          Serial.println(lidCounter);
+          if (lidCounter == 0) {
+            openLid();
+          } else {
+            closeLid();
+          }
         }
+      } else {
+        wifiTime();
+        buttonState2 = digitalRead(button2);
+        buttonState1 = digitalRead(button1);
+        if (buttonState2 == LOW) {
+          checkTime();
+        }
+          if (buttonState1 == LOW){
+          scanToStart();
+          break;
+          }
       }
     }
   }
 }
+
 //WIFI time
 void wifiTime() {
   tft.setCursor(150, 10);
@@ -146,21 +166,21 @@ void wifiTime() {
   tft.fillRect(150, 10, 95, 15, ILI9341_WHITE);
 }
 
-int openLid(){
+int openLid() {
   myservo4.write(240);
   lidCounter = 1;
   delay(1000);
-  mainMenuButton();
+  adminMenu();
 }
 
-int closeLid(){
+int closeLid() {
   myservo4.write(15);
   lidCounter = 0;
   delay(1000);
-  mainMenuButton();
+  adminMenu();
 }
-//main menu screen
-void mainMenuButton() {
+
+void adminMenu() {
   tft.setRotation(3);
   tft.fillScreen(ILI9341_DARKCYAN);
   tft.setCursor(90, 10);
@@ -174,14 +194,36 @@ void mainMenuButton() {
   tft.setCursor(55, 120);
   tft.setTextColor(ILI9341_DARKCYAN);
   tft.setTextSize(2);
-  tft.print("Pill");
+  tft.print("Open");
   tft.setCursor(218, 120);
   tft.setTextColor(ILI9341_DARKCYAN);
   tft.setTextSize(2);
-  tft.print("Open");
+  tft.print("Edit");
+}
+
+void checkDropped(){
+  
+}
+
+
+//main menu screen
+void mainMenuButton() {
+  tft.setRotation(3);
+  tft.fillScreen(ILI9341_DARKCYAN);
+  tft.setCursor(90, 10);
+  tft.setTextColor(ILI9341_DARKCYAN);
+  tft.setTextSize(2);
+  tft.fillRoundRect(88, 8, 158, 20, 3, ILI9341_WHITE);
+  tft.print("TIME:");
+  tft.fillRoundRect(88, 90, 158, 80, 10, ILI9341_WHITE);
+  tft.setCursor(90, 120);
+  tft.setTextColor(ILI9341_DARKCYAN);
+  tft.setTextSize(2);
+  tft.print("Dispense Pill");
 }
 //scan to start screen
 void scanToStart() {
+  tft.fillScreen(ILI9341_DARKCYAN);
   tft.setCursor(80, 80);
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(3);
@@ -197,17 +239,14 @@ void scanDenied() {
   tft.print("Access Denied");
 }
 
-void checkTime(){
+void checkTime() {
   timeClient.update();
   currentHour = timeClient.getHours();
-  if(currentHour <= pillHour)
-  {
+  if (currentHour <= pillHour) {
     dispensePill1();
     Serial.print(currentHour);
     mainMenuButton();
-  }
-  else
-  {
+  } else {
     denied();
     Serial.print(currentHour);
   }
