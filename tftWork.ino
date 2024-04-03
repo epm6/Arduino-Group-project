@@ -38,8 +38,8 @@ Timer timer;
 const char *ssid = "EDA-IOT";
 const char *password = "3aB1J27M";
 // NTP settings
-const long gmtOffset_sec = 0;      // Your timezone offset in seconds
-const int daylightOffset_sec = 7200;  // Daylight saving time offset in seconds
+const long gmtOffset_sec = 3600;      // Your timezone offset in seconds
+const int daylightOffset_sec = 0;  // Daylight saving time offset in seconds
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", gmtOffset_sec, daylightOffset_sec);
 //Screen Pins
@@ -284,13 +284,18 @@ void checkDropped() {
   flag = 3;
   tft.setRotation(3);
   tft.fillScreen(ILI9341_DARKCYAN);
-  tft.setCursor(30, 50);
+  tft.setCursor(90, 10);
+  tft.setTextColor(ILI9341_DARKCYAN);
+  tft.setTextSize(2);
+  tft.fillRoundRect(88, 8, 158, 20, 3, ILI9341_WHITE);
+  tft.print("TIME:");
+  tft.setCursor(60, 50);
   tft.setTextColor(ILI9341_WHITE);
-  tft.setTextSize(3);
+  tft.setTextSize(2);
   tft.print("Has Pill Dropped?");
   tft.fillRoundRect(30, 80, 100, 100, 10, ILI9341_WHITE);
   tft.fillRoundRect(190, 80, 100, 100, 10, ILI9341_WHITE);
-  tft.setCursor(55, 120);
+  tft.setCursor(65, 120);
   tft.setTextColor(ILI9341_DARKCYAN);
   tft.setTextSize(2);
   tft.print("No");
@@ -302,15 +307,12 @@ void checkDropped() {
 
 void checkTaken() {
   tft.fillScreen(ILI9341_DARKCYAN);
-  tft.setCursor(80, 80);
+  tft.setCursor(60, 50);
   tft.setTextColor(ILI9341_WHITE);
-  tft.setTextSize(3);
+  tft.setTextSize(2);
   tft.print("Checking if Taken");
   flag = 2;
 }
-
-
-
 
 //main menu screen
 void mainMenuButton() {
@@ -328,7 +330,7 @@ void mainMenuButton() {
   tft.setTextColor(ILI9341_DARKCYAN);
   tft.setTextSize(2);
   tft.print("Pill");
-  tft.setCursor(218, 120);
+  tft.setCursor(210, 120);
   tft.setTextColor(ILI9341_DARKCYAN);
   tft.setTextSize(2);
   tft.print("Cancel");
