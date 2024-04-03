@@ -359,6 +359,10 @@ void checkTime() {
   currentHour = timeClient.getHours();
   if (currentHour <= pillHour) {
     dispensePill1();
+    delay(1000);
+    dispensePill2();
+    delay(1000);
+    dispensePill3();
     Serial.print(currentHour);
     checkDropped();
   } else {
