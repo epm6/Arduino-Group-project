@@ -31,11 +31,14 @@
 #include <WiFi.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
+//Timer
+#include "Timer.h"
+Timer timer;
 //wifi password
 const char *ssid = "NOWEQGUZ";
 const char *password = "22m5v1dYbRCy";
 // NTP settings
-const long gmtOffset_sec = 0;         // Your timezone offset in seconds
+const long gmtOffset_sec = 0;      // Your timezone offset in seconds
 const int daylightOffset_sec = 0;  // Daylight saving time offset in seconds
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", gmtOffset_sec, daylightOffset_sec);
@@ -50,7 +53,10 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", gmtOffset_sec, daylightOffset_sec);
 #define SS_PIN 10
 #define RST_PIN 2
 //Pin attach
+int timerCounter = 0;
 int lidCounter = 0;
+int echoPin = 6;
+int trigPin = 5;
 int forceSensor = A0;
 int buzzerPin = A3;
 int button1 = A1;
@@ -59,6 +65,8 @@ int buttonState1 = 0;
 int buttonState2 = 0;
 int menuSelect = 0;
 int flag = 0;
+long duration;
+int distance;
 //Servo attach
 Servo myservo1;
 Servo myservo2;
@@ -86,6 +94,8 @@ void setup() {
   pinMode(button2, INPUT_PULLUP);
   pinMode(forceSensor, INPUT_PULLUP);
   pinMode(buzzerPin, OUTPUT);
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
   myservo4.attach(D0);
   myservo4.write(18);
   //serial start
@@ -138,6 +148,9 @@ void loop(void) {
             openLid();
           } else {
             closeLid();
+            scanToStart();
+            delay(1000);
+            break;
           }
         }
       } 
@@ -148,10 +161,64 @@ void loop(void) {
         if (buttonState2 == LOW) {
           checkTime();
         }
-          if (buttonState1 == LOW){
+        if (buttonState1 == LOW) {
           scanToStart();
+          delay(1000);
           break;
+        }
+      }
+      else if (flag == 2){
+        while (flag == 2){
+          Serial.println(timerCounter);
+          digitalWrite(trigPin, LOW);
+          delayMicroseconds(2);
+          digitalWrite(trigPin, HIGH);
+          delayMicroseconds(10);
+          digitalWrite(trigPin, LOW);
+          duration = pulseIn(echoPin, HIGH);
+          distance = duration * 0.034 / 2;
+          if (distance > 3){
+            Serial.println(distance);
+            flag = 4;
+            break;
           }
+          if (distance < 3) {
+            ++timerCounter;
+          }
+          if (timerCounter >= 5){
+            tone(buzzerPin, 1000);
+            delay(250);
+            tone(buzzerPin, 2000);
+            delay(250);
+            tone(buzzerPin, 1000);
+            delay(250);
+            tone(buzzerPin, 2000);
+            delay(250);
+            tone(buzzerPin, 1000);
+            delay(250);
+            tone(buzzerPin, 2000);
+            delay(250);
+            tone(buzzerPin, 1000);
+            delay(250);
+            tone(buzzerPin, 2000);
+            delay(250);
+            if (distance > 5){
+              noTone(buzzerPin);
+              flag = 4;
+              break;
+            }
+            else{
+            }
+          }
+          if (timerCounter >= 10){
+            //Email carer
+          }
+        }
+      } 
+      else if (flag == 4){
+        scanToStart();
+        delay(1000);
+        break;
       }
       else {
         wifiTime();
@@ -160,10 +227,9 @@ void loop(void) {
         if (buttonState2 == LOW) {
           checkTime();
         }
-          if (buttonState1 == LOW){
-          mainMenuButton();
-          break;
-          }
+        if (buttonState1 == LOW) {
+          checkTaken();
+        }
       }
     }
   }
@@ -185,17 +251,16 @@ int openLid() {
   myservo4.write(240);
   lidCounter = 1;
   delay(1000);
-  adminMenu();
 }
 
 int closeLid() {
   myservo4.write(15);
   lidCounter = 0;
   delay(1000);
-  adminMenu();
 }
 
 void adminMenu() {
+  flag = 1;
   tft.setRotation(3);
   tft.fillScreen(ILI9341_DARKCYAN);
   tft.setCursor(90, 10);
@@ -209,14 +274,14 @@ void adminMenu() {
   tft.setCursor(55, 120);
   tft.setTextColor(ILI9341_DARKCYAN);
   tft.setTextSize(2);
-  tft.print("Open");
+  tft.print("Edit");
   tft.setCursor(218, 120);
   tft.setTextColor(ILI9341_DARKCYAN);
   tft.setTextSize(2);
-  tft.print("Edit");
+  tft.print("Open");
 }
 
-void checkDropped(){
+void checkDropped() {
   flag = 3;
   tft.setRotation(3);
   tft.fillScreen(ILI9341_DARKCYAN);
@@ -232,9 +297,21 @@ void checkDropped(){
   tft.print("Yes");
 }
 
+void checkTaken() {
+  tft.fillScreen(ILI9341_DARKCYAN);
+  tft.setCursor(80, 80);
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(3);
+  tft.print("Checking if Taken");
+  flag = 2;
+}
+
+
+
 
 //main menu screen
 void mainMenuButton() {
+  flag = 0;
   tft.setRotation(3);
   tft.fillScreen(ILI9341_DARKCYAN);
   tft.setCursor(90, 10);
@@ -242,14 +319,20 @@ void mainMenuButton() {
   tft.setTextSize(2);
   tft.fillRoundRect(88, 8, 158, 20, 3, ILI9341_WHITE);
   tft.print("TIME:");
-  tft.fillRoundRect(88, 90, 158, 80, 10, ILI9341_WHITE);
-  tft.setCursor(90, 120);
+  tft.fillRoundRect(30, 80, 100, 100, 10, ILI9341_WHITE);
+  tft.fillRoundRect(190, 80, 100, 100, 10, ILI9341_WHITE);
+  tft.setCursor(55, 120);
   tft.setTextColor(ILI9341_DARKCYAN);
   tft.setTextSize(2);
-  tft.print("Dispense Pill");
+  tft.print("Dispense");
+  tft.setCursor(218, 120);
+  tft.setTextColor(ILI9341_DARKCYAN);
+  tft.setTextSize(2);
+  tft.print("Cancel");
 }
 //scan to start screen
 void scanToStart() {
+  noTone(buzzerPin);
   tft.fillScreen(ILI9341_DARKCYAN);
   tft.setCursor(80, 80);
   tft.setTextColor(ILI9341_WHITE);
@@ -278,7 +361,6 @@ void checkTime() {
     Serial.print(currentHour);
   }
   timeClient.update();
-
 }
 
 int denied() {
