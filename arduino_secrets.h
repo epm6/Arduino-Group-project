@@ -1,0 +1,2 @@
+#define SECRET_SSID "EDA-IOT"
+#define SECRET_PASS "3aB1J27M"
