@@ -327,7 +327,7 @@ void mainMenuButton() {
   tft.setCursor(55, 120);
   tft.setTextColor(ILI9341_DARKCYAN);
   tft.setTextSize(2);
-  tft.print("Dispense");
+  tft.print("Pill");
   tft.setCursor(218, 120);
   tft.setTextColor(ILI9341_DARKCYAN);
   tft.setTextSize(2);
