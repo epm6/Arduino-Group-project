@@ -35,6 +35,14 @@ WiFiServer server(80);
 #include <MFRC522.h>
 //Servo library
 #include "Servo.h"
+
+//Servervariables
+int time1;
+int amount1;
+int time2;
+int amount2;
+int time3;
+int amount3;
 //Wifi
 #include <WiFi.h>
 #include <NTPClient.h>
@@ -46,7 +54,7 @@ Timer timer;
 char ssid[] = SECRET_SSID;
 char pass[] = SECRET_PASS;
 // NTP settings
-const long gmtOffset_sec = 3600;      // Your timezone offset in seconds
+const long gmtOffset_sec = 3600;   // Your timezone offset in seconds
 const int daylightOffset_sec = 0;  // Daylight saving time offset in seconds
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", gmtOffset_sec, daylightOffset_sec);
@@ -147,12 +155,12 @@ void loop(void) {
         buttonState2 = digitalRead(button2);
         buttonState1 = digitalRead(button1);
         if (buttonState2 == LOW) {
-          //*START SERVER FUNCTION GOES HERE*
           serverSetup();
           serverHost();
         }
         if (buttonState1 == LOW) {
-          WiFi.disconnect();
+          WiFiClient client = server.available();
+          client.stop();
           Serial.println(lidCounter);
           if (lidCounter == 0) {
             openLid();
@@ -163,8 +171,7 @@ void loop(void) {
             break;
           }
         }
-      }
-      else if (flag == 0) {
+      } else if (flag == 0) {
         wifiTime();
         buttonState2 = digitalRead(button2);
         buttonState1 = digitalRead(button1);
@@ -176,9 +183,8 @@ void loop(void) {
           delay(1000);
           break;
         }
-      }
-      else if (flag == 2){
-        while (flag == 2){
+      } else if (flag == 2) {
+        while (flag == 2) {
           Serial.println(timerCounter);
           digitalWrite(trigPin, LOW);
           delayMicroseconds(2);
@@ -187,7 +193,7 @@ void loop(void) {
           digitalWrite(trigPin, LOW);
           duration = pulseIn(echoPin, HIGH);
           distance = duration * 0.034 / 2;
-          if (distance > 3){
+          if (distance > 3) {
             Serial.println(distance);
             flag = 4;
             break;
@@ -195,7 +201,7 @@ void loop(void) {
           if (distance < 3) {
             ++timerCounter;
           }
-          if (timerCounter >= 5){
+          if (timerCounter >= 5) {
             tone(buzzerPin, 1000);
             delay(250);
             tone(buzzerPin, 2000);
@@ -212,25 +218,22 @@ void loop(void) {
             delay(250);
             tone(buzzerPin, 2000);
             delay(250);
-            if (distance > 5){
+            if (distance > 5) {
               noTone(buzzerPin);
               flag = 4;
               break;
-            }
-            else{
+            } else {
             }
           }
-          if (timerCounter >= 10){
+          if (timerCounter >= 10) {
             //Email carer
           }
         }
-      }
-      else if (flag == 4){
+      } else if (flag == 4) {
         scanToStart();
         delay(1000);
         break;
-      }
-      else {
+      } else {
         wifiTime();
         buttonState2 = digitalRead(button2);
         buttonState1 = digitalRead(button1);
@@ -451,8 +454,8 @@ boolean getID() {
   return true;
 }
 
-void serverHost(){
-    WiFiClient client = server.available();
+void serverHost() {
+  WiFiClient client = server.available();
 
   if (client) {
     Serial.println("new client");
@@ -494,12 +497,12 @@ void serverHost(){
           int time3Index = currentLine.indexOf("time3=") + 6;
           int amount3Index = currentLine.indexOf("amount3=") + 8;
 
-          int time1 = getValue(currentLine, time1Index);
-          int amount1 = getValue(currentLine, amount1Index);
-          int time2 = getValue(currentLine, time2Index);
-          int amount2 = getValue(currentLine, amount2Index);
-          int time3 = getValue(currentLine, time3Index);
-          int amount3 = getValue(currentLine, amount3Index);
+          time1 = getValue(currentLine, time1Index);
+          amount1 = getValue(currentLine, amount1Index);
+          time2 = getValue(currentLine, time2Index);
+          amount2 = getValue(currentLine, amount2Index);
+          time3 = getValue(currentLine, time3Index);
+          amount3 = getValue(currentLine, amount3Index);
 
           Serial.print("Time for Pill Drop 1: ");
           Serial.println(time1);
@@ -519,7 +522,7 @@ void serverHost(){
     client.stop();
     Serial.println("client disconnected");
   }
-  }
+}
 
 void printWifiStatus() {
   Serial.print("SSID: ");
@@ -544,12 +547,12 @@ int getValue(String data, int index) {
   return value.toInt();
 }
 
-void serverSetup(){
-pinMode(led, OUTPUT);
+void serverSetup() {
 
   if (WiFi.status() == WL_NO_MODULE) {
     Serial.println("Communication with WiFi module failed!");
-    while (true);
+    while (true)
+      ;
   }
 
   String fv = WiFi.firmwareVersion();
@@ -564,5 +567,5 @@ pinMode(led, OUTPUT);
     delay(10000);
   }
   server.begin();
-  printWifiStatus();  
+  printWifiStatus();
 }
