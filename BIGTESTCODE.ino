@@ -37,12 +37,13 @@ WiFiServer server(80);
 #include "Servo.h"
 
 //Servervariables
-int time1;
+int time1 = 23;
 int amount1;
-int time2;
+int time2 =23;
 int amount2;
-int time3;
+int time3 = 23;
 int amount3;
+int dropped = 1;
 //Wifi
 #include <WiFi.h>
 #include <NTPClient.h>
@@ -171,7 +172,8 @@ void loop(void) {
             break;
           }
         }
-      } else if (flag == 0) {
+      } 
+      else if (flag == 0) {
         wifiTime();
         buttonState2 = digitalRead(button2);
         buttonState1 = digitalRead(button1);
@@ -183,7 +185,8 @@ void loop(void) {
           delay(1000);
           break;
         }
-      } else if (flag == 2) {
+      } 
+      else if (flag == 2) {
         while (flag == 2) {
           Serial.println(timerCounter);
           digitalWrite(trigPin, LOW);
@@ -229,23 +232,23 @@ void loop(void) {
             //Email carer
           }
         }
-      } else if (flag == 4) {
+      } 
+      else if (flag == 4) {
         scanToStart();
         delay(1000);
         break;
-      } else {
-        wifiTime();
-        buttonState2 = digitalRead(button2);
-        buttonState1 = digitalRead(button1);
-        if (buttonState2 == LOW) {
-          checkTime();
-        }
-        if (buttonState1 == LOW) {
-          checkTaken();
-        }
-      }
+      } 
     }
   }
+  timeClient.update();
+  if (time1 == timeClient.getHours()){
+  tone(buzzerPin, 2000); // Set the buzzer frequency
+  delay(500); // Keep the buzzer on for 500 milliseconds
+  noTone(buzzerPin); // Turn off the buzzer
+  delay(500); // Wait for 500 milliseconds
+
+  }
+  Serial.println(flag);
 }
 
 //WIFI time
@@ -316,6 +319,21 @@ void checkDropped() {
   tft.setTextColor(ILI9341_DARKCYAN);
   tft.setTextSize(2);
   tft.print("Yes");
+  while (true) {
+    help = 10;
+    Serial.println(help);
+    Serial.println(flag);
+    wifiTime();
+    buttonState2 = digitalRead(button2);
+    buttonState1 = digitalRead(button1);
+    if (buttonState2 == LOW) {
+      checkTime();
+      break;
+    }
+    if (buttonState1 == LOW) {
+      break;
+    }
+  }
 }
 
 void checkTaken() {
@@ -325,6 +343,49 @@ void checkTaken() {
   tft.setTextSize(2);
   tft.print("Checking if Taken");
   flag = 2;
+  while (true) {
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
+    duration = pulseIn(echoPin, HIGH);
+    distance = duration * 0.034 / 2;
+    if (distance > 3) {
+      Serial.println(distance);
+      break;
+    }
+    if (distance < 3) {
+      ++timerCounter;
+    }
+    if (timerCounter >= 5) {
+      tone(buzzerPin, 1000);
+      delay(250);
+      tone(buzzerPin, 2000);
+      delay(250);
+      tone(buzzerPin, 1000);
+      delay(250);
+      tone(buzzerPin, 2000);
+      delay(250);
+      tone(buzzerPin, 1000);
+      delay(250);
+      tone(buzzerPin, 2000);
+      delay(250);
+      tone(buzzerPin, 1000);
+      delay(250);
+      tone(buzzerPin, 2000);
+      delay(250);
+      if (distance > 5) {
+        noTone(buzzerPin);
+        flag = 4;
+        break;
+      } else {
+      }
+    }
+    if (timerCounter >= 10) {
+      //Email carer
+    }
+  }
 }
 
 //main menu screen
@@ -368,13 +429,33 @@ void scanDenied() {
 }
 
 void checkTime() {
+  dropped = 1;
   timeClient.update();
   currentHour = timeClient.getHours();
-  if (currentHour <= pillHour) {
-    dispensePill1();
-    Serial.print(currentHour);
-    checkDropped();
-  } else {
+  if (currentHour >= time1 || time2 || time3){
+    if (currentHour >= time1) {
+      delay(2000);
+      dispensePill1();
+      checkDropped();
+      dropped = 1;
+    }
+    if (currentHour >= time2) {
+      delay(2000);
+      dispensePill2();
+      checkDropped();
+      dropped = 1;
+    }
+    if (currentHour >= time3) {
+      delay(2000);
+      dispensePill3();
+      checkDropped();
+      dropped = 1;
+    }
+    if (dropped == 1);{
+      checkTaken();
+    }
+  }
+  else {
     denied();
     Serial.print(currentHour);
   }
@@ -392,7 +473,6 @@ int denied() {
 }
 
 int dispensePill1() {
-
   tft.fillScreen(ILI9341_DARKCYAN);
   tft.setCursor(80, 100);
   delay(1000);
