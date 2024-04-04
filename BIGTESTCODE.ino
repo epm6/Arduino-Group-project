@@ -19,6 +19,7 @@
 #define ILI9341_GREENYELLOW 0xAFE5  ///< 173, 255,  41
 #define ILI9341_PINK 0xFC18         ///< 255, 130, 198
 #define ILI9341_ARDUINO 0x306D6F    ///< 48, 107, 111
+int help = 0;
 //screen libraries
 #include "SPI.h"
 #include "Adafruit_GFX.h"
@@ -88,7 +89,6 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);
 //Screen setup
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
 
-int day[7];
 int pillHour = 23;
 int pillNumber = 0;
 int currentHour;
@@ -152,6 +152,7 @@ void loop(void) {
           serverHost();
         }
         if (buttonState1 == LOW) {
+          WiFi.disconnect();
           Serial.println(lidCounter);
           if (lidCounter == 0) {
             openLid();
@@ -556,7 +557,7 @@ pinMode(led, OUTPUT);
     Serial.println("Please upgrade the firmware");
   }
 
-  while (status != WL_CONNECTED) {
+  if (status != WL_CONNECTED) {
     Serial.print("Attempting to connect to Network named: ");
     Serial.println(ssid);
     status = WiFi.begin(ssid, pass);
