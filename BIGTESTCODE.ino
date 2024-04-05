@@ -41,21 +41,20 @@ unsigned long lastDispenseTime1 = 0;
 unsigned long lastDispenseTime2 = 0;
 unsigned long lastDispenseTime3 = 0;
 
+//check if pill dropped
+int check;
 //Servervariables
-int time1;
-int amount1;
-int time2;
-int amount2;
-int time3;
-int amount3;
+int time1 = 3;
+int amount1 = 10;
+int time2 = 3;
+int amount2 = 10;
+int time3 = 3;
+int amount3 = 10;
 int dropped;
 //Wifi
 #include <WiFi.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
-//Timer
-#include "Timer.h"
-Timer timer;
 //wifi password
 char ssid[] = SECRET_SSID;
 char pass[] = SECRET_PASS;
@@ -134,7 +133,9 @@ void setup() {
   scanToStart();
 }
 void loop(void) {
+  noTone(buzzerPin);
   while (getID()) {
+    noTone(buzzerPin);
     if (tagID == MasterTag) {
       flag = 1;
       tone(buzzerPin, 1000);
@@ -215,6 +216,10 @@ void loop(void) {
 }
 }
 
+void lowPills(){
+  //Email Carer Low Pills
+}
+
 //WIFI time
 void wifiTime() {
   tft.setCursor(150, 10);
@@ -288,14 +293,49 @@ void checkDropped() {
     wifiTime();
     buttonState2 = digitalRead(button2);
     buttonState1 = digitalRead(button1);
-    if (buttonState2 == LOW) {
-      checkTime();
-      break;
-    }
     if (buttonState1 == LOW) {
       break;
     }
+    if (buttonState2 == LOW) {
+      if (check == 1){
+        checkPill1Dropped();
+        check = 0;
+        dropped = 1;
+        amount1 = amount1 + 1;
+      }
+      if (check == 2){
+        checkPill2Dropped();
+        check = 0;
+        dropped = 1;
+        amount2 = amount2 + 1;
+      }
+      if (check == 3){
+        checkPill3Dropped();
+        check = 0;
+        dropped = 1;
+        amount3 = amount3 + 1;
+      }
+      break;
+    }
   }
+}
+
+void checkPill1Dropped(){
+  dispensePill1();
+  check = 1;
+  checkDropped();
+}
+
+void checkPill2Dropped(){
+  dispensePill2();
+  check = 2;
+  checkDropped();
+}
+
+void checkPill3Dropped(){
+  dispensePill3();
+  check = 3;
+  checkDropped();
 }
 
 void checkTaken() {
@@ -314,6 +354,7 @@ void checkTaken() {
     duration = pulseIn(echoPin, HIGH);
     distance = duration * 0.034 / 2;
     if (distance > 3) {
+      scanToStart();
       break;
     }
     if (distance < 3) {
@@ -338,9 +379,10 @@ void checkTaken() {
       delay(250);
       if (distance > 5) {
         noTone(buzzerPin);
-        flag = 4;
+        delay(1000);
+        scanToStart();
+        delay(1000);
         break;
-      } else {
       }
     }
     if (timerCounter >= 10) {
@@ -391,6 +433,9 @@ void scanDenied() {
 }
 
 void checkTime() {
+  if (amount1 <= 5 || amount2 <= 5 || amount3 <= 5){
+    lowPills();
+  }
   Serial.print("Check Time");
   timeClient.update();
   currentHour = timeClient.getHours();
@@ -398,20 +443,29 @@ void checkTime() {
     if (currentHour >= time1) {
       delay(2000);
       dispensePill1();
+      check = 1;
       checkDropped();
       dropped = 1;
+      amount1 = amount1 - 1;
+      myservo1.detach();
     }
     if (currentHour >= time2) {
       delay(2000);
       dispensePill2();
+      check = 2;
       checkDropped();
       dropped = 1;
+      amount2 = amount2 - 1;
+      myservo2.detach();
     }
     if (currentHour >= time3) {
       delay(2000);
       dispensePill3();
+      check = 3;
       checkDropped();
       dropped = 1;
+      amount3 = amount3 - 1;
+      myservo3.detach();
     }
     if (dropped == 1) {
       checkTaken();
@@ -428,7 +482,6 @@ void checkTime() {
 int denied() {
   tft.fillScreen(ILI9341_DARKCYAN);
   tft.setCursor(80, 100);
-  delay(1000);
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(3);
   tft.print("Denied");
@@ -444,7 +497,7 @@ int dispensePill1() {
   tft.print("Dispensing...");
   myservo1.attach(A4);
   myservo1.write(0);
-  delay(500);
+  delay(2000);
   myservo1.write(180);
   lastDispenseTime1 = millis();
 }
@@ -458,7 +511,7 @@ int dispensePill2() {
   tft.print("Dispensing...");
   myservo2.attach(A5);
   myservo2.write(0);
-  delay(500);
+  delay(2000);
   myservo2.write(180);
   lastDispenseTime2 = millis();
 }
@@ -472,7 +525,7 @@ int dispensePill3() {
   tft.print("Dispensing...");
   myservo3.attach(D1);
   myservo3.write(0);
-  delay(500);
+  delay(2000);
   myservo3.write(180);
   lastDispenseTime3 = millis();
 }
