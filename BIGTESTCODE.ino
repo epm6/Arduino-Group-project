@@ -36,14 +36,19 @@ WiFiServer server(80);
 //Servo library
 #include "Servo.h"
 
+//Alarm timers
+unsigned long lastDispenseTime1 = 0;
+unsigned long lastDispenseTime2 = 0;
+unsigned long lastDispenseTime3 = 0;
+
 //Servervariables
-int time1 = 23;
+int time1;
 int amount1;
-int time2 =23;
+int time2;
 int amount2;
-int time3 = 23;
+int time3;
 int amount3;
-int dropped = 1;
+int dropped;
 //Wifi
 #include <WiFi.h>
 #include <NTPClient.h>
@@ -157,12 +162,17 @@ void loop(void) {
         buttonState1 = digitalRead(button1);
         if (buttonState2 == LOW) {
           serverSetup();
+          while(true){
+          buttonState1 = digitalRead(button1);
           serverHost();
+          if (buttonState1 == LOW){
+            break;
+          }
+          }
         }
         if (buttonState1 == LOW) {
           WiFiClient client = server.available();
           client.stop();
-          Serial.println(lidCounter);
           if (lidCounter == 0) {
             openLid();
           } else {
@@ -179,58 +189,12 @@ void loop(void) {
         buttonState1 = digitalRead(button1);
         if (buttonState2 == LOW) {
           checkTime();
+          break;
         }
         if (buttonState1 == LOW) {
           scanToStart();
           delay(1000);
           break;
-        }
-      } 
-      else if (flag == 2) {
-        while (flag == 2) {
-          Serial.println(timerCounter);
-          digitalWrite(trigPin, LOW);
-          delayMicroseconds(2);
-          digitalWrite(trigPin, HIGH);
-          delayMicroseconds(10);
-          digitalWrite(trigPin, LOW);
-          duration = pulseIn(echoPin, HIGH);
-          distance = duration * 0.034 / 2;
-          if (distance > 3) {
-            Serial.println(distance);
-            flag = 4;
-            break;
-          }
-          if (distance < 3) {
-            ++timerCounter;
-          }
-          if (timerCounter >= 5) {
-            tone(buzzerPin, 1000);
-            delay(250);
-            tone(buzzerPin, 2000);
-            delay(250);
-            tone(buzzerPin, 1000);
-            delay(250);
-            tone(buzzerPin, 2000);
-            delay(250);
-            tone(buzzerPin, 1000);
-            delay(250);
-            tone(buzzerPin, 2000);
-            delay(250);
-            tone(buzzerPin, 1000);
-            delay(250);
-            tone(buzzerPin, 2000);
-            delay(250);
-            if (distance > 5) {
-              noTone(buzzerPin);
-              flag = 4;
-              break;
-            } else {
-            }
-          }
-          if (timerCounter >= 10) {
-            //Email carer
-          }
         }
       } 
       else if (flag == 4) {
@@ -241,14 +205,14 @@ void loop(void) {
     }
   }
   timeClient.update();
-  if (time1 == timeClient.getHours()){
-  tone(buzzerPin, 2000); // Set the buzzer frequency
-  delay(500); // Keep the buzzer on for 500 milliseconds
-  noTone(buzzerPin); // Turn off the buzzer
-  delay(500); // Wait for 500 milliseconds
-
+  if (time1 || time2 || time3 == timeClient.getHours()){
+    if (millis() - lastDispenseTime1 >= 43200000 ) {
+    tone(buzzerPin, 2000); // Set the buzzer frequency
+    delay(500); // Keep the buzzer on for 500 milliseconds
+    noTone(buzzerPin); // Turn off the buzzer
+    delay(500); // Wait for 500 milliseconds
   }
-  Serial.println(flag);
+}
 }
 
 //WIFI time
@@ -321,8 +285,6 @@ void checkDropped() {
   tft.print("Yes");
   while (true) {
     help = 10;
-    Serial.println(help);
-    Serial.println(flag);
     wifiTime();
     buttonState2 = digitalRead(button2);
     buttonState1 = digitalRead(button1);
@@ -352,7 +314,6 @@ void checkTaken() {
     duration = pulseIn(echoPin, HIGH);
     distance = duration * 0.034 / 2;
     if (distance > 3) {
-      Serial.println(distance);
       break;
     }
     if (distance < 3) {
@@ -424,15 +385,16 @@ void scanDenied() {
   tft.setTextColor(ILI9341_DARKCYAN);
   tft.setTextSize(3);
   tft.print("Scan card");
+  tft.setTextSize(2);
   tft.setTextColor(ILI9341_WHITE);
   tft.print("Access Denied");
 }
 
 void checkTime() {
-  dropped = 1;
+  Serial.print("Check Time");
   timeClient.update();
   currentHour = timeClient.getHours();
-  if (currentHour >= time1 || time2 || time3){
+  if (currentHour >= time1 || currentHour >= time2 || currentHour >= time3){
     if (currentHour >= time1) {
       delay(2000);
       dispensePill1();
@@ -451,13 +413,14 @@ void checkTime() {
       checkDropped();
       dropped = 1;
     }
-    if (dropped == 1);{
+    if (dropped == 1) {
       checkTaken();
     }
+  dropped = 0;
   }
-  else {
+  else{
+    Serial.print("Denied");
     denied();
-    Serial.print(currentHour);
   }
   timeClient.update();
 }
@@ -469,7 +432,7 @@ int denied() {
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(3);
   tft.print("Denied");
-  myservo1.write(90);
+  scanToStart();
 }
 
 int dispensePill1() {
@@ -483,6 +446,7 @@ int dispensePill1() {
   myservo1.write(0);
   delay(500);
   myservo1.write(180);
+  lastDispenseTime1 = millis();
 }
 
 int dispensePill2() {
@@ -496,6 +460,7 @@ int dispensePill2() {
   myservo2.write(0);
   delay(500);
   myservo2.write(180);
+  lastDispenseTime2 = millis();
 }
 
 int dispensePill3() {
@@ -509,6 +474,7 @@ int dispensePill3() {
   myservo3.write(0);
   delay(500);
   myservo3.write(180);
+  lastDispenseTime3 = millis();
 }
 
 //RFID scan
@@ -644,7 +610,7 @@ void serverSetup() {
     Serial.print("Attempting to connect to Network named: ");
     Serial.println(ssid);
     status = WiFi.begin(ssid, pass);
-    delay(10000);
+    delay(1000);
   }
   server.begin();
   printWifiStatus();
